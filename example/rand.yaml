@@ -1,0 +1,58 @@
+meta:
+  comment: random number generator (LCG)
+  description: runmetal run rand.yaml
+program:
+  - source: |-
+      #include <metal_stdlib>
+      using namespace metal;
+
+      struct DataOut{
+        uint32_t data[1024];
+      };
+
+      kernel void rand32(device uint32_t *seed [[buffer(0)]],
+                         device DataOut *outData [[buffer(1)]],
+                         uint id [[thread_position_in_grid]]) {
+        for(int i=0; i<1024; i++){
+          uint32_t s = seed[id];
+          s = (s * 0x41c64e6d + 0x3039);
+          seed[id] = outData[id].data[i] = s;
+        }
+      }
+buffer:
+  - name: input
+    type: buffer
+    mode: irandom
+    dtype: uint32
+    size: 128
+  - name: output
+    size: 128K
+    dtype: uint32
+progn:
+  - type: compute
+    name: check
+    entrypoint: rand32
+    buffers:
+      - input
+      - output
+    options:
+      threads:
+        - width: 64
+          height: 1
+          depth: 1
+        - width: 16
+          height: 1
+          depth: 1
+  - type: blit
+    name: memcpy
+    buffers:
+      - output
+post-process:
+  - name: result
+    source: |-
+      log.info("result: %s", output)
+      log.info("max/min/avg/stdev=%d/%d/%f/%f, len=%d", numpy.max(output), numpy.min(output), numpy.average(output), numpy.std(output), len(output))
+      log.info("uniq: %d/%d", len(numpy.unique(output)), len(output))
+    buffers:
+      - name: output
+        dtype: uint32

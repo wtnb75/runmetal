@@ -1,0 +1,4 @@
+PyYAML
+click
+pyobjc
+numpy

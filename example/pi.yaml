@@ -1,0 +1,45 @@
+meta:
+  comment: π by monte carlo
+  description: runmetal run pi.yaml
+program:
+  - source: |-
+      #include <metal_stdlib>
+      using namespace metal;
+
+      kernel void monte_carlo(const device float2 *inPoints [[buffer(0)]],
+                              device bool *outBools [[buffer(1)]],
+                              uint id [[thread_position_in_grid]]) {
+        const float2 location = inPoints[id];
+        const float x = location.x;
+        const float y = location.y;
+        outBools[id] = (sqrt((x * x) + (y * y)) < 1.0) ? true : false;
+      }
+entrypoint:
+  - name: monte_carlo
+buffer:
+  - name: input
+    type: buffer
+    mode: random
+    dtype: float32
+    size: 200m
+  - name: output
+    size: 100m
+    dtype: bool8
+progn:
+  - type: compute
+    name: check
+    entrypoint: monte_carlo
+    buffers:
+      - input
+      - output
+  - type: blit
+    name: memcpy
+    buffers:
+      - output
+post-process:
+  - name: result
+    source: |-
+      log.info("pi = %f, n = %d", numpy.sum(output == True)/(len(output))*4, len(output))
+    buffers:
+      - name: output
+        dtype: bool8
