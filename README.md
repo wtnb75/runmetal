@@ -1,4 +1,4 @@
-# runmetal: Apple Metal Framework caller
+# runmetal: Apple Metal(GPU) Framework caller
 
 - numpy array -> GPU buffer -> compute -> copy result into numpy array
 
@@ -66,4 +66,4 @@ Commands:
 
 ## examples(python)
 
-TBD
+- [pi](example.pi.ipynb)

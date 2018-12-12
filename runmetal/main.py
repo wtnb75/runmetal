@@ -102,7 +102,8 @@ def setup_log(verbose):
 @cli.command()
 @click.argument('input', type=click.Path(exists=True))
 @click.option('--verbose/--no-verbose', default=False)
-def run(input, verbose):
+@click.option('--make/--no-make', default=False)
+def run(input, verbose, make):
     setup_log(verbose)
     pm = PyMetal()
     src = []
@@ -122,7 +123,7 @@ def run(input, verbose):
     else:
         base, ext = os.path.splitext(input)
         libfn = base + ".metallib"
-        if isnewer(input, libfn):
+        if make and isnewer(input, libfn):
             pm.openlibrary_compiled(libfn)
         else:
             src = []

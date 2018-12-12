@@ -12,7 +12,6 @@ pip-selfcheck.json
 pack.sh
 unpack.sh
 __pycache__
-*.ipynb
 docs
 dist
 *.egg-info

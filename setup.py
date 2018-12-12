@@ -5,7 +5,7 @@ with open("README.md") as f:
 
 setup(name='runmetal',
       version='0.1',
-      description='run Apple Metal framework',
+      description='run Apple Metal(GPU) framework',
       long_description=long_descr,
       long_description_content_type="text/markdown",
       ext_modules=[
