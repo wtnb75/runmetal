@@ -66,4 +66,4 @@ Commands:
 
 ## examples(python)
 
-- [pi](example.pi.ipynb)
+- [pi](example/pi.ipynb)
