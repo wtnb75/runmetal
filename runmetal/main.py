@@ -4,6 +4,7 @@ import logging
 import numpy
 import click
 import yaml
+from jinja2 import Environment
 
 from .pymetal import PyMetal
 
@@ -23,6 +24,35 @@ log = None
 def cli(ctx):
     if ctx.invoked_subcommand is None:
         print(ctx.get_help())
+
+
+def apply_template(s, vars: dict):
+    if isinstance(s, str):
+        env = Environment()
+        res = env.from_string(s).render(vars)
+        log.debug("res: %s...%s", type(res), res)
+        if res == s:
+            log.debug("not changed")
+            return s
+        try:
+            # result is integer?
+            return int(res)
+        except ValueError:
+            pass
+        try:
+            # result is float?
+            return float(res)
+        except ValueError:
+            log.debug("is str")
+            return res
+    elif isinstance(s, dict):
+        res = {}
+        for k, v in s.items():
+            res[k] = apply_template(v, vars)
+        return res
+    elif isinstance(s, (tuple, list)):
+        return [apply_template(x, vars) for x in s]
+    return s
 
 
 def read_source(basedir: str, p: dict) -> str:
@@ -103,18 +133,23 @@ def setup_log(verbose):
 @click.argument('input', type=click.Path(exists=True))
 @click.option('--verbose/--no-verbose', default=False)
 @click.option('--make/--no-make', default=False)
-def run(input, verbose, make):
+@click.option('--extra', '-e', multiple=True)
+def run(input, verbose, make, extra):
     setup_log(verbose)
     pm = PyMetal()
     src = []
     data = yaml.load(open(input))
+    vars = data.get("vars", {})
+    for ev in extra:
+        k, v = ev.split("=", 1)
+        vars[k] = v
     basedir = os.path.dirname(input)
     # log.debug("data: %s", data)
     funcs = {}
     bufs = {}
     pm.opendevice()
     log.debug("dev: %s", pm.dev.name())
-    progs = data.get("program", [])
+    progs = apply_template(data.get("program", []), vars)
     if isinstance(progs, str):
         if progs == "default":
             pm.openlibrary_default()
@@ -123,7 +158,7 @@ def run(input, verbose, make):
     else:
         base, ext = os.path.splitext(input)
         libfn = base + ".metallib"
-        if make and isnewer(input, libfn):
+        if make and len(extra) == 0 and isnewer(input, libfn):
             pm.openlibrary_compiled(libfn)
         else:
             src = []
@@ -131,13 +166,13 @@ def run(input, verbose, make):
                 src.append(read_source(basedir, p))
             pm.openlibrary("\n".join(src))
     # log.debug("lib: %s", pm.lib)
-    for f in data.get("entrypoint", []):
+    for f in apply_template(data.get("entrypoint", []), vars):
         nm = f.get("name", None)
         if nm is None:
             log.error("no name(ep): %s", f)
             continue
         funcs[nm] = pm.getfn(nm)
-    for b in data.get("buffer", []):
+    for b in apply_template(data.get("buffer", []), vars):
         nm = b.get("name", None)
         if nm is None:
             log.error("no name(buf): %s", b)
@@ -171,7 +206,7 @@ def run(input, verbose, make):
             continue
         log.debug("done")
     cq, cb = pm.getqueue()
-    for prog in data.get("progn", []):
+    for prog in apply_template(data.get("progn", []), vars):
         typ = prog.get("type", "compute")
         name = prog.get("name", None)
         descr = prog.get("description", None)
@@ -204,7 +239,7 @@ def run(input, verbose, make):
     log.info("wait")
     pm.wait_process(cb)
     log.info("done")
-    for o in data.get("result", []):
+    for o in apply_template(data.get("result", []), vars):
         bufname = o.get("buffer", None)
         if bufname is None or bufname not in bufs:
             log.error("buffer not found: %s", o)
@@ -222,7 +257,7 @@ def run(input, verbose, make):
         npbuf = pm.buf2numpy(buf, dtype=getattr(numpy, typ))
         log.debug("%s", npbuf)
         savevalue(basedir, ofn, npbuf)
-    for o in data.get("post-process", []):
+    for o in apply_template(data.get("post-process", []), vars):
         script = read_source(basedir, o)
         name = o.get("name")
         args = {
@@ -264,14 +299,16 @@ def lsdev():
 def compile(input, verbose, make):
     setup_log(verbose)
     data = yaml.load(open(input))
+    vars = data.get("vars", {})
     basedir = os.path.dirname(input)
     bn, ext = os.path.splitext(os.path.basename(input))
     outfn = os.path.join(basedir, bn + ".metallib")
     if not make or not isnewer(input, outfn):
         src = []
-        for p in data.get("program", []):
+        for p in apply_template(data.get("program", []), vars):
             src.append(read_source(basedir, p))
         pm = PyMetal()
+        log.debug("source: %s", src)
         pm.compile("\n".join(src), outfn)
 
 

@@ -1,6 +1,8 @@
 meta:
   comment: π by monte carlo
   description: runmetal run pi.yaml
+vars:
+  sampleM: 128
 program:
   - source: |-
       #include <metal_stdlib>
@@ -21,9 +23,9 @@ buffer:
     type: buffer
     mode: random
     dtype: float32
-    size: 200m
+    size: "{{sampleM*2}}m"
   - name: output
-    size: 100m
+    size: "{{sampleM}}m"
     dtype: bool8
 progn:
   - type: compute

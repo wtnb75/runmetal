@@ -1,19 +1,22 @@
 meta:
   comment: random number generator (LCG)
   description: runmetal run rand.yaml
+vars:
+  seedsize: 128
+  mult: 1024
 program:
   - source: |-
       #include <metal_stdlib>
       using namespace metal;
 
       struct DataOut{
-        uint32_t data[1024];
+        uint32_t data[{{mult}}];
       };
 
       kernel void rand32(device uint32_t *seed [[buffer(0)]],
                          device DataOut *outData [[buffer(1)]],
                          uint id [[thread_position_in_grid]]) {
-        for(int i=0; i<1024; i++){
+        for(int i=0; i<{{mult}}; i++){
           uint32_t s = seed[id];
           s = (s * 0x41c64e6d + 0x3039);
           seed[id] = outData[id].data[i] = s;
@@ -24,9 +27,9 @@ buffer:
     type: buffer
     mode: irandom
     dtype: uint32
-    size: 128
+    size: "{{seedsize}}"
   - name: output
-    size: 128K
+    size: "{{seedsize*mult}}"
     dtype: uint32
 progn:
   - type: compute
@@ -40,7 +43,7 @@ progn:
         - width: 64
           height: 1
           depth: 1
-        - width: 16
+        - width: "{{seedsize/64}}"
           height: 1
           depth: 1
   - type: blit
