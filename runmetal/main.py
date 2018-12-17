@@ -4,6 +4,7 @@ import logging
 import numpy
 import click
 import yaml
+import time
 from jinja2 import Environment
 
 from .pymetal import PyMetal
@@ -30,9 +31,9 @@ def apply_template(s, vars: dict):
     if isinstance(s, str):
         env = Environment()
         res = env.from_string(s).render(vars)
-        log.debug("res: %s...%s", type(res), res)
+        # log.debug("res: %s...%s", type(res), res)
         if res == s:
-            log.debug("not changed")
+            # log.debug("not changed")
             return s
         try:
             # result is integer?
@@ -43,7 +44,7 @@ def apply_template(s, vars: dict):
             # result is float?
             return float(res)
         except ValueError:
-            log.debug("is str")
+            # log.debug("is str")
             return res
     elif isinstance(s, dict):
         res = {}
@@ -227,7 +228,10 @@ def run(input, verbose, make, extra):
             for i, b in enumerate(prog.get("buffers", [])):
                 bufargs.append(bufs[b])
             threadargs = prog.get("options", {}).get("threads", None)
-            pm.enqueue_compute(cb, funcs[fn], bufargs, threadargs, label=name)
+            iterations = str2num(
+                prog.get("options", {}).get("iterations", None))
+            pm.enqueue_compute(
+                cb, funcs[fn], bufargs, threadargs, iterations, label=name)
         elif typ == "render":
             # TBD
             log.error("type %s: not implemented yet", typ)
@@ -237,8 +241,9 @@ def run(input, verbose, make, extra):
     log.info("commit")
     pm.start_process(cb)
     log.info("wait")
+    start = time.time()
     pm.wait_process(cb)
-    log.info("done")
+    log.info("done %g sec", time.time() - start)
     for o in apply_template(data.get("result", []), vars):
         bufname = o.get("buffer", None)
         if bufname is None or bufname not in bufs:

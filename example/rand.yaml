@@ -39,13 +39,7 @@ progn:
       - input
       - output
     options:
-      threads:
-        - width: 64
-          height: 1
-          depth: 1
-        - width: "{{seedsize/64}}"
-          height: 1
-          depth: 1
+      iterations: "{{seedsize}}"
   - type: blit
     name: memcpy
     buffers:

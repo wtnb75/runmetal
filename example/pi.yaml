@@ -34,6 +34,8 @@ progn:
     buffers:
       - input
       - output
+    options:
+      iterations: "{{sampleM}}m"
   - type: blit
     name: memcpy
     buffers:

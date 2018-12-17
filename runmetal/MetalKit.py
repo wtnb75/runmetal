@@ -1,9 +1,8 @@
 import os
-import subprocess
+# import subprocess
 import objc as _objc
-from CoreFoundation import *
 
-#basepath = subprocess.run(["xcode-select", "-p"],
+# basepath = subprocess.run(["xcode-select", "-p"],
 #                          capture_output=True).stdout.decode("utf8").strip()
 # macossdk="/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk"
 basepath = "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer"

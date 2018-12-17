@@ -176,7 +176,7 @@ class PyMetal:
             return Metal.MTLSize(width=arg, height=1, depth=1)
         return Metal.MTLSize(**arg)
 
-    def enqueue_compute(self, cbuffer, func, buffers, threads=None, label=None):
+    def enqueue_compute(self, cbuffer, func, buffers, threads=None, iters=None, label=None):
         desc = Metal.MTLComputePipelineDescriptor.new()
         if label is not None:
             desc.setLabel_(label)
@@ -190,6 +190,8 @@ class PyMetal:
             encoder.setBuffer_offset_atIndex_(buf, 0, i)
             if bufmax < buf.length():
                 bufmax = buf.length()
+        if iters is not None:
+            bufmax = iters
         # threads
         if threads is None:
             # number of thread per group
@@ -198,9 +200,10 @@ class PyMetal:
             log.debug("w,h=%d,%d, bufmax=%d", w, h, bufmax)
             tpg = self.getmtlsize({"width": w, "height": h, "depth": 1})
             # number of thread group per grid
-            w2 = max(1, int(bufmax / 4 / w))
+            # w2 = max(1, int((bufmax + w * h - 1) / (w * h)))
+            w2 = int(max(1, (bufmax + w - 1) / w))
             ntg = self.getmtlsize(w2)
-            log.debug("threads: %s %s", ntg, tpg)
+            log.debug("threads: ntg=%s, tpg=%s", ntg, tpg)
             encoder.dispatchThreadgroups_threadsPerThreadgroup_(ntg, tpg)
         else:
             assert len(threads) >= 2

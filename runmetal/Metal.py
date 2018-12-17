@@ -1,7 +1,7 @@
 import os
-import subprocess
+# import subprocess
 import objc as _objc
-from CoreFoundation import *
+# from CoreFoundation import *
 
 # basepath = subprocess.run(["xcode-select", "-p"],
 #                          capture_output=True).stdout.decode("utf8").strip()
